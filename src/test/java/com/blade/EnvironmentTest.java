@@ -5,7 +5,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
@@ -40,10 +39,10 @@ public class EnvironmentTest {
         properties.setProperty("name", "jack");
         Environment environment = Environment.of(properties);
 
-        String name    = environment.get("name", "rose");
-        String age     = environment.get("age", "20");
-        int    version = environment.getInt("app.version", 1001);
-        long   base    = environment.getLong("app.BANNER_PADDING", 1002);
+        String name = environment.get("name", "rose");
+        String age = environment.get("age", "20");
+        int version = environment.getInt("app.version", 1001);
+        long base = environment.getLong("app.BANNER_PADDING", 1002);
 
         Assert.assertEquals("jack", name);
         Assert.assertEquals("20", age);
@@ -61,23 +60,23 @@ public class EnvironmentTest {
 
     @Test
     public void testEnvByUrl() {
-        URL         url         = EnvironmentTest.class.getResource("/application.properties");
+        URL url = EnvironmentTest.class.getResource("/application.properties");
         Environment environment = Environment.of(url);
         Assert.assertEquals("0.0.2", environment.get("app.version").get());
     }
 
     @Test
     public void testEnvByFile() {
-        File        file        = new File("src/test/resources/application.properties");
+        File file = new File("src/test/resources/application.properties");
         Environment environment = Environment.of(file);
         Assert.assertEquals("0.0.2", environment.get("app.version").get());
     }
 
     @Test
     public void testOf() {
-        Environment      environment = Environment.of("application.properties");
-        Optional<String> version     = environment.get("app.version");
-        String           lang        = environment.get("app.lang", "cn");
+        Environment environment = Environment.of("application.properties");
+        Optional<String> version = environment.get("app.version");
+        String lang = environment.get("app.lang", "cn");
 
         assertEquals("0.0.2", version.get());
         assertEquals("cn", lang);
@@ -141,8 +140,8 @@ public class EnvironmentTest {
 
     @Test
     public void testGetPrefix() {
-        Environment         environment = Environment.of("application.properties");
-        Map<String, Object> map         = environment.getPrefix("app");
+        Environment environment = Environment.of("application.properties");
+        Map<String, Object> map = environment.getPrefix("app");
         assertEquals(7, map.size());
         assertEquals("0.0.2", map.get("version"));
     }
@@ -203,4 +202,11 @@ public class EnvironmentTest {
         environment.add("age", 20);
         Assert.assertEquals(Integer.valueOf(20), environment.getIntOrNull("age"));
     }
+
+    @Test
+    public void testEnvFromYaml() {
+        Environment env = Environment.of(new File("src/test/resources/app.yaml"), "YAML");
+        assertEquals(env.get("app.name").get(), "Blade support yaml");
+    }
+
 }

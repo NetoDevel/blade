@@ -86,8 +86,8 @@ public class BladeTest extends BaseTestCase {
 
     @Test
     public void testStart() {
-        String[] args = null;
-        Blade start = Blade.of().start(Hello.class, args);
+        String[] args  = null;
+        Blade    start = Blade.of().start(Hello.class, args);
         start.stop();
     }
 

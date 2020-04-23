@@ -23,10 +23,12 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.var;
+import org.apache.commons.io.IOUtils;
 
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -46,10 +48,10 @@ import static java.util.Optional.ofNullable;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Environment {
 
-    private static final String      PREFIX_CLASSPATH = "classpath:";
-    private static final String      PREFIX_FILE      = "file:";
-    private static final String      PREFIX_URL       = "url:";
-    private static final Environment EMPTY_ENV        = new Environment();
+    private static final String PREFIX_CLASSPATH = "classpath:";
+    private static final String PREFIX_FILE = "file:";
+    private static final String PREFIX_URL = "url:";
+    private static final Environment EMPTY_ENV = new Environment();
 
     /**
      * Save the internal configuration
@@ -111,6 +113,7 @@ public class Environment {
      * @param file environment file
      * @return return Environment instance
      */
+    @Deprecated
     public static Environment of(@NonNull File file) {
         try {
             return of(Files.newInputStream(Paths.get(file.getPath())));
@@ -118,6 +121,15 @@ public class Environment {
             throw new IllegalStateException(e);
         }
     }
+
+    public static Environment of(@NonNull File file, String type) {
+        try {
+            return of(Files.newInputStream(Paths.get(file.getPath())), type);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
 
     /**
      * Load environment by location
@@ -133,6 +145,11 @@ public class Environment {
             location = location.substring(PREFIX_FILE.length());
             File properties = new File(location);
             if (!properties.exists()) throw new IllegalStateException("resources/application.properties not found");
+
+            if (location.endsWith(".yaml")) {
+                return of(properties, "YAML");
+            }
+
             return of(properties);
         } else if (location.startsWith(PREFIX_URL)) {
             location = location.substring(PREFIX_URL.length());
@@ -171,10 +188,39 @@ public class Environment {
      * @param is InputStream instance
      * @return return Environment instance
      */
+    @Deprecated
     private static Environment of(@NonNull InputStream is) {
         try {
             var environment = new Environment();
             environment.props.load(new InputStreamReader(is, "UTF-8"));
+            return environment;
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            IOKit.closeQuietly(is);
+        }
+    }
+
+    /**
+     * Load InputStream to Environment
+     *
+     * @param is InputStream instance
+     * @return return Environment instance
+     */
+    private static Environment of(@NonNull InputStream is, String type) {
+        try {
+            var environment = new Environment();
+            if (type != null && type.equals("YAML")) {
+                var text = IOUtils.toString(is, StandardCharsets.UTF_8.name());
+                var split = text.split(":");
+
+                for (int i = 0; i < split.length; i++) {
+                    if (i == split.length - 1) break;
+                    environment.set(split[i], split[i + 1].trim());
+                }
+            } else {
+                environment.props.load(new InputStreamReader(is, "UTF-8"));
+            }
             return environment;
         } catch (IOException e) {
             throw new IllegalStateException(e);
@@ -346,7 +392,7 @@ public class Environment {
     public Optional<Date> getDate(String key) {
         if (null != key && getObject(key).isPresent()) {
             String value = getObject(key).get().toString();
-            Date   date  = (Date) ReflectKit.convert(Date.class, value);
+            Date date = (Date) ReflectKit.convert(Date.class, value);
             return Optional.ofNullable(date);
         }
         return Optional.empty();
